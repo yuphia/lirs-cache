@@ -8,14 +8,17 @@
 
 namespace caches
 {
+int idealCache (size_t size, std::vector <int> vec);
+
 template <typename KeyT>
 struct ideal_cache
 {
     size_t sz_;
 
     bool isFull = false;
+    bool isPrintable_ = false;
 
-    ideal_cache (size_t sz) : sz_(sz) {};
+    ideal_cache (size_t sz, bool isPrintable) : sz_(sz), isPrintable_ (isPrintable) {};
     
     using T = typename std::pair <KeyT, int>;
     using IterVector = typename std::vector<T>::iterator;
@@ -44,7 +47,6 @@ struct ideal_cache
                 it->second = vectorEnd - it;
                 itIndexed->second->second = len;
                 itIndexed->second = it;
-                std::cout << "here: " << len << " " << it->first << std::endl; 
             }
         }
 
@@ -61,14 +63,10 @@ struct ideal_cache
         predictor.clear();
         int hits = 0;
 
+
         for (auto it = indexedVector.begin(); it != indexedVector.end(); it++)
         {
-            std::cout << "////////////////////////////////////" << std::endl;
-
-            std::cout << std::endl << "Input: " << it->first << std::endl;
-
-            std::cout << "Beginning" << std::endl;
-            printer ();
+            printerStart<KeyT> (it->first);
 
             auto itInCache = predictor.find (it->first);
             if (itInCache != predictor.end())
@@ -87,10 +85,8 @@ struct ideal_cache
                 predictor.insert ({it->first, it->second});
             }
 
-            std::cout << std::endl << "End" << std::endl;
-            printer();
-            std::cout << "////////////////////////////////////" << std::endl;
             decrementLenInCache();
+            printerEnd();
         }
 
         return hits;
@@ -111,11 +107,38 @@ struct ideal_cache
 
     void printer()
     {
-        std::cout << "printing the cache:" << std::endl;
-
-        for (auto it = predictor.begin(); it != predictor.end(); it++)
+        if (isPrintable_)
         {
-            std::cout << "element: " << it->first << std::endl;
+            std::cout << "printing the cache:" << std::endl;
+
+            for (auto it = predictor.begin(); it != predictor.end(); it++)
+            {
+                std::cout << "element: " << it->first << std::endl;
+            }
+        }
+    }
+
+    void printerEnd()
+    {
+        if (isPrintable_)
+        {
+            std::cout << std::endl << "End" << std::endl;
+            printer();
+            std::cout << "////////////////////////////////////" << std::endl;
+        }
+    }
+
+    template <typename T>
+    void printerStart (T page)
+    {
+        if (isPrintable_)
+        {
+            std::cout << "////////////////////////////////////" << std::endl;
+
+            std::cout << std::endl << "Input: " << page << std::endl;
+
+            std::cout << "Beginning" << std::endl;
+            printer ();
         }
     }
 
@@ -126,4 +149,17 @@ struct ideal_cache
     }
 };
 
+int idealCache (size_t size, std::vector <int> vec)
+{
+    ideal_cache<int> testCache {size, 0};
+
+    std::vector <std::pair<int, int>> newVec;
+    for (auto it = vec.begin(); it != vec.end(); it++)
+        newVec.push_back ({*it, 0});
+    int hits = testCache.prepareAndRun (newVec);
+
+    return hits;
 }
+
+}
+    

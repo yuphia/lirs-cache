@@ -1,0 +1,1 @@
+add_executable (ideal-test ideal-test.cpp)

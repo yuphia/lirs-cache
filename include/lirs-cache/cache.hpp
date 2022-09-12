@@ -5,11 +5,13 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <iostream>
 
 int slowGetPageInt (int key);
 
 namespace caches 
 {
+int lirsCache (size_t size, std::vector <int> vec);
 
 template <typename PageT, typename KeyT = int>
 struct lirs_cache_t
@@ -22,7 +24,9 @@ struct lirs_cache_t
 
     lirs_cache_t (size_t sz) : sz_(sz) 
     {
-        if (sz < 10)
+        if (sz < 10 && sz > 1)
+            hir_sz_ = 2;
+        else if (sz == 1)
             hir_sz_ = 1;
         else
             hir_sz_ = sz/10;
@@ -45,13 +49,6 @@ struct lirs_cache_t
     bool newPageHandler (KeyT key, F slowGetPage)
     {
         auto hit = cache_.find (key);
-
-        std::cout << "IS HIT = " << (hit != cache_.end()) << std::endl;
-        std::cout << "isFull = " << isFull << std::endl;
-        std::cout << "isLirFull = " << isLirFull << std::endl;
-
-        printer();
-
         if (!isFull)
         {
             bool isInCache = !(hit == cache_.end());
@@ -61,8 +58,9 @@ struct lirs_cache_t
             else if (!isLirFull)
                 lirHandler (key);      
             else if (isInCache)
+            {
                 fillingLirHit (key);
-
+            }
             else
             {
                 auto keyItInLirs = findInList (key, HIR, &lirsStack);
@@ -76,15 +74,12 @@ struct lirs_cache_t
                     isFull = true;                
             }
 
-            printer();
-
             return isInCache;
         }
 
         if (hit == cache_.end())
         { 
             hirNonResidentHandler (key, slowGetPage);
-            printer();
             return false;            
         }
 
@@ -93,7 +88,6 @@ struct lirs_cache_t
         else if (hit->second.second == HIR)
             hirResidentHandler (key);
 
-        printer();
         return true;
     }
 
@@ -123,13 +117,19 @@ struct lirs_cache_t
     void fillingLirHit (KeyT key)
     {
         auto lirIt = findInList (key, LIR, &lirsStack);
-        if(lirIt == lirsStack.end())
+        auto lirIt2 = findInList (key, HIR, &lirsStack);
+        auto hirIt = findInList (key, HIR, &hirList);
+        if(lirIt == lirsStack.end() && lirIt2 == lirsStack.end() && hirIt == hirList.end())
         {
             lirsStack.push_front ({key, HIR});
             hirList.push_front ({key, HIR});
         }
-        else
+        else if (lirIt != lirsStack.end())
             lirHandler (key);
+        else if (lirIt2 != lirsStack.end())
+            hirResidentHandler (key);
+        else if (hirIt != hirList.end())
+            hirResidentHandler (key);
     }
 
     template <typename F>
@@ -151,26 +151,23 @@ struct lirs_cache_t
     template <typename F> 
     void hirNonResidentHandler (KeyT key, F slowGetPage)
     {
-        std::cout << "Hir non resident" << std::endl;
-
         auto it = findInList (key, HIR, &lirsStack);
 
-        cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key)});
 
         if (it == lirsStack.end())
         {
             hirList.push_front ({key, HIR});
             lirsStack.push_front ({key, HIR});
-
+            cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key)});
             dltFromHirAndCache();
         }
         else
         {
             lirsStack.erase (it);
             lirsStack.push_front ({key, LIR});
+            cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key)});
 
             lirBottomToHirFront();            
-
             dltFromHirAndCache();
         }
     }
@@ -196,25 +193,18 @@ struct lirs_cache_t
 template <typename PageT, typename KeyT>
 void lirs_cache_t<PageT, KeyT>::hirResidentHandler (KeyT key)
 {
-    std::cout << "Hir resident" << std::endl;
-
     auto keyItInLirs = findInList (key, HIR, &lirsStack);
 
     if (keyItInLirs == lirsStack.end())
     {
         auto hirListIt = findInList (key, HIR, &hirList);
-        
         hirList.erase (hirListIt);
         hirList.push_front ({key, HIR});
-
-        if (hirList.size() != 1)
-            dltFromHirAndCache();
     }            
     else 
     {
         auto hirListIt = findInList (key, HIR, &hirList);
         hirList.erase (hirListIt);
-
         lirsStack.erase (keyItInLirs);
         lirsStack.push_front ({key, LIR});
         
@@ -223,17 +213,12 @@ void lirs_cache_t<PageT, KeyT>::hirResidentHandler (KeyT key)
             cachePlacementKey->second.second = LIR;
 
         lirBottomToHirFront();
-
-        if (hirList.size() != 1)
-            dltFromHirAndCache();
     }
 }
 
 template <typename PageT, typename KeyT>
 void lirs_cache_t<PageT, KeyT>::lirHandler (KeyT key)
 {
-    std::cout << "Lir resident" << std::endl;
-
     static int counter = 0;
     auto keyItInLirs = findInList (key, LIR, &lirsStack);
     
@@ -310,6 +295,19 @@ void lirs_cache_t <PageT, KeyT>::printer()
     }
 
     std::cout << std::endl;
+}
+
+
+int lirsCache (size_t size, std::vector <int> vec)
+{
+    int hits = 0;
+    lirs_cache_t <int, int> testCache {size};
+    
+    for (auto it = vec.begin(); it != vec.end(); it++)
+        if (testCache.newPageHandler(*it, slowGetPageInt))
+            hits += 1;
+
+    return hits;
 }
 
 }

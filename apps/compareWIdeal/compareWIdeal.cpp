@@ -30,7 +30,7 @@ int main()
         blank.push_back (pair);
     }
 
-    caches::ideal_cache<int> thisIdealCache {size};
+    caches::ideal_cache<int> thisIdealCache {size, 0};
     int hits = thisIdealCache.prepareAndRun (blank);
     std::cout << "Ideal: " << hits << std::endl;
     std::cout << "Lirs: " << lirsHits << std::endl;
