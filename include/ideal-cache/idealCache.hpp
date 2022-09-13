@@ -37,7 +37,7 @@ struct ideal_cache
             auto itIndexed = indexer.find (it->first);
             if (itIndexed == indexer.end())
             {
-                int lengthToEnd = (int)(vectorEnd - it);
+                int lengthToEnd = std::distance (it, vectorEnd);
                 indexer.insert ({it->first, it});
                 it->second = lengthToEnd;
             }
