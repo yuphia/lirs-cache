@@ -10,7 +10,7 @@ int main()
     int inputs_amount = 0;
     size_t cache_sz = 0;
 
-    std::cin >> inputs_amount >> cache_sz;
+    std::cin >> cache_sz >> inputs_amount;
     assert (std::cin.good());
 
     caches::lirs_cache_t <int> cache {cache_sz};
