@@ -14,7 +14,7 @@ namespace caches
 int lirsCache (size_t size, std::vector <int> vec);
 
 template <typename PageT, typename KeyT = int>
-struct lirs_cache_t
+class lirs_cache_t
 {
     size_t sz_;
     size_t hir_sz_ = 0;    
@@ -22,15 +22,6 @@ struct lirs_cache_t
     bool isFull = false;
     bool isLirFull = false;
 
-    lirs_cache_t (size_t sz) : sz_(sz) 
-    {
-        if (sz < 10 && sz > 1)
-            hir_sz_ = 2;
-        else if (sz == 1)
-            hir_sz_ = 1;
-        else
-            hir_sz_ = sz/10;
-    };
 
     enum State 
     {
@@ -45,51 +36,6 @@ struct lirs_cache_t
     std::list<T> lirsStack = {};
     std::list<T> hirList = {};
 
-    template <typename F> 
-    bool newPageHandler (KeyT key, F slowGetPage)
-    {
-        auto hit = cache_.find (key);
-        if (!isFull)
-        {
-            bool isInCache = !(hit == cache_.end());
-            
-            if (!isLirFull && !isInCache)
-                lirNotFullAndNotInCache (key, slowGetPage);
-            else if (!isLirFull)
-                lirHandler (key);      
-            else if (isInCache)
-            {
-                fillingLirHit (key);
-            }
-            else
-            {
-                auto keyItInLirs = findInList (key, HIR, &lirsStack);
-
-                if (keyItInLirs == lirsStack.end())
-                    fillingNonResidentHirWasNotInStk (key, slowGetPage);
-                else 
-                    fillingNonResidentHirWasInStk (key, slowGetPage);
-
-                if (hirList.size() >= hir_sz_)
-                    isFull = true;                
-            }
-
-            return isInCache;
-        }
-
-        if (hit == cache_.end())
-        { 
-            hirNonResidentHandler (key, slowGetPage);
-            return false;            
-        }
-
-        if (hit->second.second == LIR)
-            lirHandler (key);
-        else if (hit->second.second == HIR)
-            hirResidentHandler (key);
-
-        return true;
-    }
 
 // Typed handlers for not full cache
 
@@ -188,6 +134,64 @@ struct lirs_cache_t
 
     void stackPrune();
     void printer();
+
+public:
+    template <typename F> 
+    bool newPageHandler (KeyT key, F slowGetPage)
+    {
+        auto hit = cache_.find (key);
+        if (!isFull)
+        {
+            bool isInCache = !(hit == cache_.end());
+            
+            if (!isLirFull && !isInCache)
+                lirNotFullAndNotInCache (key, slowGetPage);
+            else if (!isLirFull)
+                lirHandler (key);      
+            else if (isInCache)
+            {
+                fillingLirHit (key);
+            }
+            else
+            {
+                auto keyItInLirs = findInList (key, HIR, &lirsStack);
+
+                if (keyItInLirs == lirsStack.end())
+                    fillingNonResidentHirWasNotInStk (key, slowGetPage);
+                else 
+                    fillingNonResidentHirWasInStk (key, slowGetPage);
+
+                if (hirList.size() >= hir_sz_)
+                    isFull = true;                
+            }
+
+            return isInCache;
+        }
+
+        if (hit == cache_.end())
+        { 
+            hirNonResidentHandler (key, slowGetPage);
+            return false;            
+        }
+
+        if (hit->second.second == LIR)
+            lirHandler (key);
+        else if (hit->second.second == HIR)
+            hirResidentHandler (key);
+
+        return true;
+    }
+    
+    
+    lirs_cache_t (size_t sz) : sz_(sz) 
+    {
+        if (sz < 10 && sz > 1)
+            hir_sz_ = 2;
+        else if (sz == 1)
+            hir_sz_ = 1;
+        else
+            hir_sz_ = sz/10;
+    };
 };
 
 template <typename PageT, typename KeyT>

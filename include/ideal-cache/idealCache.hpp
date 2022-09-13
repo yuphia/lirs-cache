@@ -11,14 +11,13 @@ namespace caches
 int idealCache (size_t size, std::vector <int> vec);
 
 template <typename KeyT>
-struct ideal_cache
+class ideal_cache
 {
     size_t sz_;
 
     bool isFull = false;
     bool isPrintable_ = false;
 
-    ideal_cache (size_t sz, bool isPrintable) : sz_(sz), isPrintable_ (isPrintable) {};
     
     using T = typename std::pair <KeyT, int>;
     using IterVector = typename std::vector<T>::iterator;
@@ -28,35 +27,6 @@ struct ideal_cache
 
     std::vector <T> indexedVector = {};
 
-    int prepareAndRun (std::vector<T> inputArray)
-    {
-        auto vectorEnd = inputArray.end();
-
-        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
-        {
-            auto itIndexed = indexer.find (it->first);
-            if (itIndexed == indexer.end())
-            {
-                int lengthToEnd = std::distance (it, vectorEnd);
-                indexer.insert ({it->first, it});
-                it->second = lengthToEnd;
-            }
-            else
-            {
-                int len = (int) (it - itIndexed->second);
-                it->second = vectorEnd - it;
-                itIndexed->second->second = len;
-                itIndexed->second = it;
-            }
-        }
-
-        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
-        {
-            indexedVector.push_back (*it);
-        }
-
-        return emulateCache();
-    }
 
     int emulateCache()
     {
@@ -146,6 +116,39 @@ struct ideal_cache
     {
         for (auto it = predictor.begin(); it != predictor.end(); ++it)
             it->second--;
+    }
+   
+public:   
+    ideal_cache (size_t sz, bool isPrintable) : sz_(sz), isPrintable_ (isPrintable) {};
+    
+    int prepareAndRun (std::vector<T> inputArray)
+    {
+        auto vectorEnd = inputArray.end();
+
+        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
+        {
+            auto itIndexed = indexer.find (it->first);
+            if (itIndexed == indexer.end())
+            {
+                int lengthToEnd = std::distance (it, vectorEnd);
+                indexer.insert ({it->first, it});
+                it->second = lengthToEnd;
+            }
+            else
+            {
+                int len = (int) (it - itIndexed->second);
+                it->second = vectorEnd - it;
+                itIndexed->second->second = len;
+                itIndexed->second = it;
+            }
+        }
+
+        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
+        {
+            indexedVector.push_back (*it);
+        }
+
+        return emulateCache();
     }
 };
 
