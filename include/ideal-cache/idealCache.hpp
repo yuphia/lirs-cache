@@ -32,7 +32,7 @@ struct ideal_cache
     {
         auto vectorEnd = inputArray.end();
 
-        for (auto it = inputArray.begin(); it < inputArray.end(); it++)
+        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
         {
             auto itIndexed = indexer.find (it->first);
             if (itIndexed == indexer.end())
@@ -50,7 +50,7 @@ struct ideal_cache
             }
         }
 
-        for (auto it = inputArray.begin(); it < inputArray.end(); it++)
+        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
         {
             indexedVector.push_back (*it);
         }
@@ -64,7 +64,7 @@ struct ideal_cache
         int hits = 0;
 
 
-        for (auto it = indexedVector.begin(); it != indexedVector.end(); it++)
+        for (auto it = indexedVector.begin(); it != indexedVector.end(); ++it)
         {
             printerStart<KeyT> (it->first);
 
@@ -111,7 +111,7 @@ struct ideal_cache
         {
             std::cout << "printing the cache:" << std::endl;
 
-            for (auto it = predictor.begin(); it != predictor.end(); it++)
+            for (auto it = predictor.begin(); it != predictor.end(); ++it)
             {
                 std::cout << "element: " << it->first << std::endl;
             }
@@ -144,7 +144,7 @@ struct ideal_cache
 
     void decrementLenInCache()
     {
-        for (auto it = predictor.begin(); it != predictor.end(); it++)
+        for (auto it = predictor.begin(); it != predictor.end(); ++it)
             it->second--;
     }
 };
@@ -154,7 +154,7 @@ int idealCache (size_t size, std::vector <int> vec)
     ideal_cache<int> testCache {size, 0};
 
     std::vector <std::pair<int, int>> newVec;
-    for (auto it = vec.begin(); it != vec.end(); it++)
+    for (auto it = vec.begin(); it != vec.end(); ++it)
         newVec.push_back ({*it, 0});
     int hits = testCache.prepareAndRun (newVec);
 
