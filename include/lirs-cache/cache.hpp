@@ -62,8 +62,7 @@ class lirs_cache_t
 
 // Typed handlers for not full cache
 
-    template <typename F>
-    void lirNotFullAndNotInCache (KeyT key, F slowGetPage)
+    void lirNotFullAndNotInCache (KeyT key, PageT (*slowGetPage)(KeyT key))
     {
         lirsStack.push_front ({key, LIR});
         cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
@@ -72,8 +71,7 @@ class lirs_cache_t
             isLirFull = true;
     }
 
-    template <typename F>
-    void fillingNonResidentHirWasInStk (KeyT key, F slowGetPage)
+    void fillingNonResidentHirWasInStk (KeyT key, PageT (*slowGetPage)(KeyT key))
     {
         lirsStack.push_front ({key, LIR});
         cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
@@ -112,8 +110,7 @@ class lirs_cache_t
         }
     }
 
-    template <typename F>
-    void fillingNonResidentHirWasNotInStk (KeyT key, F slowGetPage)
+    void fillingNonResidentHirWasNotInStk (KeyT key, PageT (*slowGetPage)(KeyT key))
     {
 
         hirList.push_front ({key, HIR});
@@ -128,8 +125,7 @@ class lirs_cache_t
     void lirHandler (KeyT key, ItInCache cacheIt);
     void hirResidentHandler (KeyT key, ItInCache cacheIt); 
 
-    template <typename F> 
-    void hirNonResidentHandler (KeyT key, F slowGetPage)
+    void hirNonResidentHandler (KeyT key, PageT (*slowGetPage)(KeyT key))
     {
         auto it = hirNonResidentInLirsHolder.find (key); //findInList (key, HIR, &lirsStack);
 
@@ -162,7 +158,7 @@ class lirs_cache_t
     auto findInList (KeyT key, State state, std::list<T> *thisList);
 ////////////////////////////////////////////////////////////////////////////////////////
 
-    template <typename F> StatePageAndIterator* slowGetPageWrap (F slowGetPage, State state, KeyT key,
+    StatePageAndIterator* slowGetPageWrap (PageT (*slowGetPage)(KeyT key), State state, KeyT key,
                                                                 IterType iterLirs, IterType iterHir)
     {
         StatePageAndIterator* value = new StatePageAndIterator (state, slowGetPage(key), iterLirs, iterHir);
@@ -382,7 +378,7 @@ int lirsCache (size_t size, std::vector <int> vec)
     int hits = 0;
     lirs_cache_t <int, int> testCache {size};
     
-    for (auto it = vec.begin(), itend = vec.end(); it != itend; ++it)
+    for (std::vector<int>::iterator it = vec.begin(), itend = vec.end(); it != itend; ++it)
         if (testCache.newPageHandler(*it, slowGetPageInt))
             hits += 1;
 
