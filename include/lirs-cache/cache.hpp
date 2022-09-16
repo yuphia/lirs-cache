@@ -37,14 +37,25 @@ class lirs_cache_t
         State state;
         PageT page;
         IterType iterInLirsStack;
+        IterType iterInHirList;
 
-        StatePageAndIterator (State state_, PageT page_, IterType iter_) 
-                              : state(state_), page (page_), iterInLirsStack (iter_){};
+        StatePageAndIterator (State state_, PageT page_, IterType iterLirs_, IterType iterHir_) 
+                              : state(state_), page (page_), iterInLirsStack (iterLirs_), iterInHirList (iterHir_){};
     };
     
+    struct StateAndIterator
+    {
+        State state;
+        IterType iterInLirsStack;
+
+        StateAndIterator (State state_, IterType iterLirs_)
+                          : state (state_), iterInLirsStack (iterLirs_){};
+    };
+
     using ItInCache = typename std::unordered_map <KeyT, StatePageAndIterator*>::iterator;
 
     std::unordered_map<KeyT, StatePageAndIterator*> cache_ = {};
+    std::unordered_map<KeyT, StateAndIterator*> hirNonResidentInLirsHolder = {};
     std::list<T> lirsStack = {};
     std::list<T> hirList = {};
 
@@ -55,7 +66,7 @@ class lirs_cache_t
     void lirNotFullAndNotInCache (KeyT key, F slowGetPage)
     {
         lirsStack.push_front ({key, LIR});
-        cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin())});
+        cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
 
         if (lirsStack.size() >= sz_ - hir_sz_)            
             isLirFull = true;
@@ -65,7 +76,7 @@ class lirs_cache_t
     void fillingNonResidentHirWasInStk (KeyT key, F slowGetPage)
     {
         lirsStack.push_front ({key, LIR});
-        cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin())});
+        cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
         
         /*else
             hirList.push_front ({key, HIR});*/
@@ -73,77 +84,88 @@ class lirs_cache_t
 
     void fillingLirHit (KeyT key, ItInCache iter)
     {
-        auto lirIt = iter->second->iterInLirsStack;
-        if (lirIt != lirsStack.end())
-        {
-            lirHandler (key, iter);
-            return;
-        }
 
-        auto lirIt2 = findInList (key, HIR, &lirsStack);
-        auto hirIt = findInList (key, HIR, &hirList);
+
+        auto lirIt = iter->second->iterInLirsStack;
+        auto lirIt2 = iter->second->iterInLirsStack;
+        auto hirIt = iter->second->iterInHirList;
         if(lirIt == lirsStack.end() && lirIt2 == lirsStack.end() && hirIt == hirList.end())
         {
             lirsStack.push_front ({key, HIR});
             hirList.push_front ({key, HIR});
+
+            iter->second->iterInLirsStack = lirsStack.begin();
+            iter->second->iterInHirList = hirList.begin();
+        }
+        else if (lirIt != lirsStack.end() && hirIt == hirList.end())
+        {
+            lirHandler (key, iter);
+            return;
         }
         else if (lirIt2 != lirsStack.end())
-            hirResidentHandler (key);
+        {
+            hirResidentHandler (key, iter);
+        }
         else if (hirIt != hirList.end())
-            hirResidentHandler (key);
+        {
+            hirResidentHandler (key, iter);
+        }
     }
 
     template <typename F>
     void fillingNonResidentHirWasNotInStk (KeyT key, F slowGetPage)
     {
-        cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key, lirsStack.end())});
 
         hirList.push_front ({key, HIR});
         lirsStack.push_front ({key, HIR});
 
+        cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key, lirsStack.begin(), hirList.begin())});
         /*lirBottomToHirFront();
         stackPrune();*/
     }
 
 // Typed handlers
-    void lirHandler (KeyT key, ItInCache);
-    void hirResidentHandler (KeyT key); 
+    void lirHandler (KeyT key, ItInCache cacheIt);
+    void hirResidentHandler (KeyT key, ItInCache cacheIt); 
 
     template <typename F> 
     void hirNonResidentHandler (KeyT key, F slowGetPage)
     {
-        auto it = findInList (key, HIR, &lirsStack);
+        auto it = hirNonResidentInLirsHolder.find (key); //findInList (key, HIR, &lirsStack);
 
 
-        if (it == lirsStack.end())
+        if ( it == hirNonResidentInLirsHolder.end())
         {
             hirList.push_front ({key, HIR});
             lirsStack.push_front ({key, HIR});
-            cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key, lirsStack.end())});
+            cache_.insert ({key, slowGetPageWrap (slowGetPage, HIR, key, lirsStack.begin(), hirList.begin())});
             dltFromHirAndCache();
         }
         else
         {
-            lirsStack.erase (it);
+            lirsStack.erase (it->second->iterInLirsStack);
             lirsStack.push_front ({key, LIR});
-            cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin())});
+            cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
 
             lirBottomToHirFront();            
             dltFromHirAndCache();
+
+            delete it->second;
+            hirNonResidentInLirsHolder.erase (it);
         }
     }
 ////////////////////////////////////////////////////////////////////////////////////////
 
-// Service functions used for moving, inserting, finding and deleting blocks in the lirs Stack, hash table and hir list
+// Service functions used for moving, inserting, g and deleting blocks in the lirs Stack, hash table and hir list
     void lirBottomToHirFront();
     void dltFromHirAndCache();
     auto findInList (KeyT key, State state, std::list<T> *thisList);
 ////////////////////////////////////////////////////////////////////////////////////////
 
     template <typename F> StatePageAndIterator* slowGetPageWrap (F slowGetPage, State state, KeyT key,
-                                                                IterType iter)
+                                                                IterType iterLirs, IterType iterHir)
     {
-        StatePageAndIterator* value = new StatePageAndIterator (state, slowGetPage(key), iter);
+        StatePageAndIterator* value = new StatePageAndIterator (state, slowGetPage(key), iterLirs, iterHir);
 
         return value;
     }
@@ -170,9 +192,9 @@ public:
             }
             else
             {
-                auto keyItInLirs = findInList (key, HIR, &lirsStack);
+                auto keyItInLirs = hirNonResidentInLirsHolder.find (key);//findInList (key, HIR, &lirsStack);
 
-                if (keyItInLirs == lirsStack.end())
+                if (keyItInLirs == hirNonResidentInLirsHolder.end())
                     fillingNonResidentHirWasNotInStk (key, slowGetPage);
                 else 
                     fillingNonResidentHirWasInStk (key, slowGetPage);
@@ -180,7 +202,6 @@ public:
                 if (hirList.size() >= hir_sz_)
                     isFull = true;                
             }
-
             return isInCache;
         }
 
@@ -193,7 +214,7 @@ public:
         if (hit->second->state == LIR)
             lirHandler (key, hit);
         else if (hit->second->state == HIR)
-            hirResidentHandler (key);
+            hirResidentHandler (key, hit);
 
         return true;
     }
@@ -213,34 +234,37 @@ public:
     {
         for (auto it = cache_.begin(); it != cache_.end(); ++it)
             delete it->second;
+
+        for (auto it = hirNonResidentInLirsHolder.begin(); it != hirNonResidentInLirsHolder.end(); ++it)
+            delete it->second;
+        
     }
 };
 
 template <typename PageT, typename KeyT>
-void lirs_cache_t<PageT, KeyT>::hirResidentHandler (KeyT key)
+void lirs_cache_t<PageT, KeyT>::hirResidentHandler (KeyT key, ItInCache cacheIt)
 {
-    auto keyItInLirs = findInList (key, HIR, &lirsStack);
+    auto keyItInLirs = cacheIt->second->iterInLirsStack;//findInList (key, HIR, &lirsStack);
 
     if (keyItInLirs == lirsStack.end())
     {
-        auto hirListIt = findInList (key, HIR, &hirList);
+        auto hirListIt = cacheIt->second->iterInHirList;//findInList (key, HIR, &hirList);
         hirList.erase (hirListIt);
         hirList.push_front ({key, HIR});
+
+        cacheIt->second->iterInHirList = hirList.begin();
     }            
     else 
     {
-        auto hirListIt = findInList (key, HIR, &hirList);
+
+        auto hirListIt = cacheIt->second->iterInHirList;
         hirList.erase (hirListIt);
         lirsStack.erase (keyItInLirs);
         lirsStack.push_front ({key, LIR});
         
-        auto cachePlacementKey = cache_.find (key);
-        if (cachePlacementKey != cache_.end())
-        {    
-            cachePlacementKey->second->state = LIR;
-            cachePlacementKey->second->iterInLirsStack = lirsStack.begin();
-        }
-
+        cacheIt->second->state = LIR;
+        cacheIt->second->iterInLirsStack = lirsStack.begin();
+        cacheIt->second->iterInHirList = hirList.end();
 
         lirBottomToHirFront();
     }
@@ -262,14 +286,17 @@ template <typename PageT, typename KeyT>
 void lirs_cache_t <PageT, KeyT>::lirBottomToHirFront()
 {
     auto it = cache_.find (lirsStack.back().first);
+
+    T tempPair = std::make_pair (lirsStack.back().first, HIR);
+    hirList.push_front (tempPair);
+    
     if (it != cache_.end())
     {
         it->second->state = HIR;
         it->second->iterInLirsStack = lirsStack.end();
+        it->second->iterInHirList = hirList.begin();
     }
 
-    T tempPair = std::make_pair (lirsStack.back().first, HIR);
-    hirList.push_front (tempPair);
     lirsStack.pop_back();
     stackPrune();       
 }
@@ -278,6 +305,10 @@ template <typename PageT, typename KeyT>
 void lirs_cache_t <PageT, KeyT>::dltFromHirAndCache()
 {
     auto itInCache_ = cache_.find (hirList.back().first);
+
+    if (itInCache_->second->iterInLirsStack != lirsStack.end())
+        hirNonResidentInLirsHolder.insert ({hirList.back().first, 
+                                            new StateAndIterator (HIR, itInCache_->second->iterInLirsStack)});
 
     delete itInCache_->second;
     cache_.erase (itInCache_);
@@ -295,7 +326,20 @@ template <typename PageT, typename KeyT>
 void lirs_cache_t <PageT, KeyT>::stackPrune()
 {
     while (lirsStack.back().second == HIR)
+    {
+        auto itCache = cache_.find (lirsStack.back().first);
+        if (itCache != cache_.end())
+            itCache->second->iterInLirsStack = lirsStack.end();
+        
+        auto itInHirHolder = hirNonResidentInLirsHolder.find (lirsStack.back().first);
+        if (itInHirHolder != hirNonResidentInLirsHolder.end())    
+        {            
+            delete itInHirHolder->second;
+            hirNonResidentInLirsHolder.erase (itInHirHolder);
+        }
+
         lirsStack.pop_back();
+    }
 }
 
 template <typename PageT, typename KeyT>
@@ -320,9 +364,9 @@ void lirs_cache_t <PageT, KeyT>::printer()
     }
     
     std::cout << std::endl <<"Cache contents" << std::endl;
-    for (typename std::unordered_map<KeyT, StatePageAndIterator>::iterator it = cache_.begin(); it != cache_.end(); ++it)        
+    for (ItInCache it = cache_.begin(); it != cache_.end(); ++it)        
     {
-        if (it->second.second == HIR)
+        if (it->second->state == HIR)
             std::cout << "key:" << it->first << "; value: HIR" << std::endl;
         else
             std::cout << "key:" << it->first << "; value: LIR" << std::endl;

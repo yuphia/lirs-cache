@@ -101,8 +101,8 @@ foreach(APP ${APPS})
 
     target_compile_features(${APP} PRIVATE cxx_std_17)
 
-    target_link_options(${APP} PRIVATE "${FLAGS}")
-    target_compile_options(${APP} PRIVATE "${WARNS};${FLAGS}")
+    #target_link_options(${APP} PRIVATE "${FLAGS}")
+    #target_compile_options(${APP} PRIVATE "${WARNS};${FLAGS}")
 
     target_include_directories(${APP} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

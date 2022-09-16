@@ -12,6 +12,7 @@ int main()
 
     std::cin >> cache_sz >> inputs_amount;
     assert (std::cin.good());
+    //std::cout << "cache_sz" << cache_sz << "inputs_amount" <<  inputs_amount;
 
     caches::lirs_cache_t <int> cache {cache_sz};
 
