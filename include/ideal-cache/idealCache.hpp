@@ -34,7 +34,7 @@ class ideal_cache
         int hits = 0;
 
 
-        for (auto it = indexedVector.begin(); it != indexedVector.end(); ++it)
+        for (auto it = indexedVector.begin(), itend = indexedVector.end(); it != itend; ++it)
         {
             printerStart<KeyT> (it->first);
 
@@ -67,7 +67,9 @@ class ideal_cache
         auto it = predictor.begin();
         auto max = it;
 
-        for (; it != predictor.end(); it++)
+        auto itend = predictor.end();
+
+        for (; it != itend; it++)
         {
             if (it->second > max->second)
                 max = it;
@@ -81,7 +83,7 @@ class ideal_cache
         {
             std::cout << "printing the cache:" << std::endl;
 
-            for (auto it = predictor.begin(); it != predictor.end(); ++it)
+            for (auto it = predictor.begin(), itend = predictor.end(); it != itend; ++it)
             {
                 std::cout << "element: " << it->first << std::endl;
             }
@@ -114,7 +116,7 @@ class ideal_cache
 
     void decrementLenInCache()
     {
-        for (auto it = predictor.begin(); it != predictor.end(); ++it)
+        for (auto it = predictor.begin(), itend = predictor.end(); it != itend; ++it)
             it->second--;
     }
    
@@ -125,7 +127,7 @@ public:
     {
         auto vectorEnd = inputArray.end();
 
-        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
+        for (auto it = inputArray.begin(), itend = inputArray.end(); it < itend; ++it)
         {
             auto itIndexed = indexer.find (it->first);
             if (itIndexed == indexer.end())
@@ -143,7 +145,7 @@ public:
             }
         }
 
-        for (auto it = inputArray.begin(); it < inputArray.end(); ++it)
+        for (auto it = inputArray.begin(), itend = inputArray.end(); it < itend; ++it)
         {
             indexedVector.push_back (*it);
         }
@@ -157,7 +159,7 @@ int idealCache (size_t size, std::vector <int> vec)
     ideal_cache<int> testCache {size, 0};
 
     std::vector <std::pair<int, int>> newVec;
-    for (auto it = vec.begin(); it != vec.end(); ++it)
+    for (auto it = vec.begin(), itend = vec.end(); it != itend; ++it)
         newVec.push_back ({*it, 0});
     int hits = testCache.prepareAndRun (newVec);
 

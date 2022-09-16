@@ -232,10 +232,11 @@ public:
 
     ~lirs_cache_t ()
     {
-        for (auto it = cache_.begin(); it != cache_.end(); ++it)
+        for (auto it = cache_.begin(), itend = cache_.end(); it != itend; ++it)
             delete it->second;
 
-        for (auto it = hirNonResidentInLirsHolder.begin(); it != hirNonResidentInLirsHolder.end(); ++it)
+        for (auto it = hirNonResidentInLirsHolder.begin(), itend = hirNonResidentInLirsHolder.end(); 
+             it != itend; ++it)
             delete it->second;
         
     }
@@ -346,7 +347,7 @@ template <typename PageT, typename KeyT>
 void lirs_cache_t <PageT, KeyT>::printer()
 {
     std::cout << std::endl << "Lirs stack S" << std::endl;
-    for (typename std::list<T>::iterator it = lirsStack.begin(); it != lirsStack.end(); ++it)
+    for (typename std::list<T>::iterator it = lirsStack.begin(), itend = lirsStack.end(); it != itend; ++it)
     {
         if (it->second == HIR)
             std::cout << "key:" << it->first << "; value: HIR" << std::endl;
@@ -355,7 +356,7 @@ void lirs_cache_t <PageT, KeyT>::printer()
     }
 
     std::cout << "Hir list Q" << std::endl;
-    for (typename std::list<T>::iterator it = hirList.begin(); it != hirList.end(); ++it)        
+    for (typename std::list<T>::iterator it = hirList.begin(), itend = hirList.end(); it != itend; ++it)        
     {
         if (it->second == HIR)
             std::cout << "key:" << it->first << "; value: HIR" << std::endl;
@@ -364,7 +365,7 @@ void lirs_cache_t <PageT, KeyT>::printer()
     }
     
     std::cout << std::endl <<"Cache contents" << std::endl;
-    for (ItInCache it = cache_.begin(); it != cache_.end(); ++it)        
+    for (ItInCache it = cache_.begin(), itend = cache_.end(); it != itend; ++it)        
     {
         if (it->second->state == HIR)
             std::cout << "key:" << it->first << "; value: HIR" << std::endl;
@@ -381,7 +382,7 @@ int lirsCache (size_t size, std::vector <int> vec)
     int hits = 0;
     lirs_cache_t <int, int> testCache {size};
     
-    for (auto it = vec.begin(); it != vec.end(); ++it)
+    for (auto it = vec.begin(), itend = vec.end(); it != itend; ++it)
         if (testCache.newPageHandler(*it, slowGetPageInt))
             hits += 1;
 
