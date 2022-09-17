@@ -125,8 +125,8 @@ foreach (TEST ${TESTS})
 
     target_compile_features(${TEST} PRIVATE cxx_std_17)
 
-    target_link_options(${TEST} PRIVATE "${FLAGS}")
-    target_compile_options(${TEST} PRIVATE "${WARNS};${FLAGS}")
+    #target_link_options(${TEST} PRIVATE "${FLAGS}")
+    #target_compile_options(${TEST} PRIVATE "${WARNS};${FLAGS}")
 
     target_include_directories(${TEST} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
