@@ -21,6 +21,7 @@ int main()
         int q;
         std::cin >> q;
         assert(std::cin.good());
+
         if (cache.newPageHandler(q, slowGetPageInt))
             hits += 1;        
     }

@@ -75,15 +75,10 @@ class lirs_cache_t
     {
         lirsStack.push_front ({key, LIR});
         cache_.insert ({key, slowGetPageWrap (slowGetPage, LIR, key, lirsStack.begin(), hirList.end())});
-        
-        /*else
-            hirList.push_front ({key, HIR});*/
     }
 
     void fillingLirHit (KeyT key, ItInCache iter)
     {
-
-
         auto lirIt = iter->second->iterInLirsStack;
         auto lirIt2 = iter->second->iterInLirsStack;
         auto hirIt = iter->second->iterInHirList;
@@ -155,7 +150,7 @@ class lirs_cache_t
 // Service functions used for moving, inserting, g and deleting blocks in the lirs Stack, hash table and hir list
     void lirBottomToHirFront();
     void dltFromHirAndCache();
-    auto findInList (KeyT key, State state, std::list<T> *thisList);
+    auto findInList (KeyT key, State state, std::list<T> *thisList) const;
 ////////////////////////////////////////////////////////////////////////////////////////
 
     StatePageAndIterator* slowGetPageWrap (PageT (*slowGetPage)(KeyT key), State state, KeyT key,
@@ -167,11 +162,10 @@ class lirs_cache_t
     }
 
     void stackPrune();
-    void printer();
+    void printer() const;
 
 public:
-    template <typename F> 
-    bool newPageHandler (KeyT key, F slowGetPage)
+    bool newPageHandler (KeyT key, PageT (*slowGetPage)(KeyT key))
     {
         auto hit = cache_.find (key);
         if (!isFull)
@@ -313,7 +307,7 @@ void lirs_cache_t <PageT, KeyT>::dltFromHirAndCache()
 }
 
 template <typename PageT, typename KeyT>
-auto lirs_cache_t <PageT, KeyT>::findInList (KeyT key, State state, std::list<T> *thisList)
+auto lirs_cache_t <PageT, KeyT>::findInList (KeyT key, State state, std::list<T> *thisList) const
 {
     T thisPair = std::make_pair (key, state); 
     return std::find (thisList->begin(), thisList->end(), thisPair); 
@@ -340,7 +334,7 @@ void lirs_cache_t <PageT, KeyT>::stackPrune()
 }
 
 template <typename PageT, typename KeyT>
-void lirs_cache_t <PageT, KeyT>::printer()
+void lirs_cache_t <PageT, KeyT>::printer() const
 {
     std::cout << std::endl << "Lirs stack S" << std::endl;
     for (typename std::list<T>::iterator it = lirsStack.begin(), itend = lirsStack.end(); it != itend; ++it)
@@ -379,9 +373,10 @@ int lirsCache (size_t size, std::vector <int> vec)
     lirs_cache_t <int, int> testCache {size};
     
     for (std::vector<int>::iterator it = vec.begin(), itend = vec.end(); it != itend; ++it)
+    {
         if (testCache.newPageHandler(*it, slowGetPageInt))
             hits += 1;
-
+    }
     return hits;
 }
 

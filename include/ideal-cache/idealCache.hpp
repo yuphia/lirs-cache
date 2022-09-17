@@ -62,14 +62,14 @@ class ideal_cache
         return hits;
     }
 
-    auto findBiggestInPredictor()
+    auto findBiggestInPredictor() const
     {
         auto it = predictor.begin();
         auto max = it;
 
         auto itend = predictor.end();
 
-        for (; it != itend; it++)
+        for (; it != itend; ++it)
         {
             if (it->second > max->second)
                 max = it;
@@ -77,7 +77,7 @@ class ideal_cache
         return max;
     }
 
-    void printer()
+    void printer() const
     {
         if (isPrintable_)
         {
@@ -90,7 +90,7 @@ class ideal_cache
         }
     }
 
-    void printerEnd()
+    void printerEnd() const
     {
         if (isPrintable_)
         {
@@ -101,7 +101,7 @@ class ideal_cache
     }
 
     template <typename T>
-    void printerStart (T page)
+    void printerStart (T page) const
     {
         if (isPrintable_)
         {
