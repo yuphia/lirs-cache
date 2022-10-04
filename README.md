@@ -1,4 +1,5 @@
-#lirs-cache - a program that implements LIRS replacement policy
+
+# lirs-cache - a program that implements LIRS replacement policy
 
 ### Algorithm implemented according to its description in the paper: 
 Song Jiang and Xiaodong Zhang. 2002. LIRS: An Efficient Low InterReference Recency Set Replacement Policy to Improve Buffer Cache
@@ -22,6 +23,7 @@ After following this simple set of instructions all apps are now in `build/apps`
 
 1. Run `./test-gen/test-generator` in build directory
 2. Input two numbers: amount of keys that you want in your test and a multiplier that works in this formula: `((rand() % amount)/multiplier)`
-   After that a test file called test.dat is generated directly in build directory. You can run any of the apps using it.
 
-   P.S. In test generator multiplier value is needed to control the density of keys created.
+After that a test file called test.dat is generated directly in build directory. You can run any of the apps using it.
+
+P.S. In test generator multiplier value is needed to control the density of keys created.
