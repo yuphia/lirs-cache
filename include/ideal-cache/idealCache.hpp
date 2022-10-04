@@ -5,6 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <iostream>
+#include <map>
 
 namespace caches
 {
@@ -21,41 +22,50 @@ class ideal_cache
     
     using T = typename std::pair <KeyT, int>;
     using IterVector = typename std::vector<T>::iterator;
+    using MultimapIter = typename std::multimap<int, KeyT>::iterator;
 
-    std::unordered_map<KeyT, int> predictor = {};
+
+    std::multimap<int, KeyT> predictor = {};
+    std::unordered_map<KeyT, MultimapIter> predictorHelper {};
+
     std::unordered_map<KeyT, IterVector> indexer = {};
 
     std::vector <T> indexedVector = {};
-
 
     int emulateCache()
     {
         predictor.clear();
         int hits = 0;
 
-
         for (auto it = indexedVector.begin(), itend = indexedVector.end(); it != itend; ++it)
         {
             printerStart<KeyT> (it->first);
 
-            auto itInCache = predictor.find (it->first);
-            if (itInCache != predictor.end())
+            auto itInCache = predictorHelper.find (it->first);
+            if (itInCache != predictorHelper.end())
             {
-                itInCache->second = it->second;
+                predictor.erase (itInCache->second);
+                predictorHelper.erase (itInCache);
+
+                auto it2 = predictorHelper.insert ({it->first, predictor.insert ({it->second, it->first})});
+
                 hits++;
             }
-            else if (sz_ == predictor.size())
+            else if (sz_ == predictorHelper.size())   
             {
-                auto biggest = findBiggestInPredictor();
-                predictor.erase (biggest);
-                predictor.insert ({it->first, it->second});
-            }
-            else if (sz_ > predictor.size())
-            {
-                predictor.insert ({it->first, it->second});
-            }
+                auto biggest = --predictor.end();
 
-            decrementLenInCache();
+                if (biggest->first > it->second)
+                {
+                    predictorHelper.erase (predictorHelper.find (biggest->second));
+                    predictor.erase (biggest);
+
+                    predictorHelper.insert ({it->first, predictor.insert ({it->second, it->first})});
+                }
+            }
+            else if (sz_ > predictorHelper.size())
+                predictorHelper.insert ({it->first, predictor.insert ({it->second, it->first})});
+
             printerEnd();
         }
 
@@ -85,8 +95,9 @@ class ideal_cache
 
             for (auto it = predictor.begin(), itend = predictor.end(); it != itend; ++it)
             {
-                std::cout << "element: " << it->first << std::endl;
+                std::cout << "element: " << it->second << ", " << it->first << std::endl;
             }
+            std::cout << std::endl;
         }
     }
 
@@ -119,12 +130,19 @@ class ideal_cache
         for (auto it = predictor.begin(), itend = predictor.end(); it != itend; ++it)
             it->second--;
     }
+
+    void printVec()
+    {
+        for (auto x : indexedVector)
+            std::cout << x.first << " : " << x.second << std::endl;
+    }
    
 public:   
     ideal_cache (size_t sz, bool isPrintable) : sz_(sz), isPrintable_ (isPrintable) {};
     
     int prepareAndRun (std::vector<T> inputArray)
     {
+        auto vectorBegin = inputArray.begin();
         auto vectorEnd = inputArray.end();
 
         for (auto it = inputArray.begin(), itend = inputArray.end(); it < itend; ++it)
@@ -132,14 +150,14 @@ public:
             auto itIndexed = indexer.find (it->first);
             if (itIndexed == indexer.end())
             {
-                int lengthToEnd = std::distance (it, vectorEnd);
+                int index = std::distance (vectorBegin, vectorEnd);
                 indexer.insert ({it->first, it});
-                it->second = lengthToEnd;
+                it->second = index;
             }
             else
             {
-                int len = (int) (it - itIndexed->second);
-                it->second = vectorEnd - it;
+                auto len = std::distance (vectorBegin, it);
+                it->second = std::distance (vectorBegin, vectorEnd);
                 itIndexed->second->second = len;
                 itIndexed->second = it;
             }

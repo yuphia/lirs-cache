@@ -133,3 +133,5 @@ foreach (TEST ${TESTS})
     target_link_libraries (${TEST} PRIVATE ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} pthread)
 
 endforeach ()
+
+add_subdirectory (test-gen)

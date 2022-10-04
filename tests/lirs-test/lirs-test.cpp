@@ -13,7 +13,7 @@ TEST(CacheTest, test2) {
 
 TEST(CacheTest, test3) {
     std::vector<int> arr3 = {4, 7, 3, 6, 85, 34, 6, 8, 5, 3, 4, 7, 8, 6, 4, 4, 5, 6, 7, 8};
-    EXPECT_EQ(7, caches::lirsCache(5, arr3));//20
+    EXPECT_EQ(9, caches::lirsCache(5, arr3));//20
 }
 
 TEST(CacheTest, test4) {

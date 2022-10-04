@@ -215,7 +215,9 @@ public:
         if (sz < 10 && sz > 1)
             hir_sz_ = 2;
         else if (sz == 1)
+        {
             hir_sz_ = 1;
+        }
         else
             hir_sz_ = sz/10;
     };
